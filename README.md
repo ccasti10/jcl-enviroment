@@ -1,10 +1,10 @@
 # JCL Environment Switcher
 
-Extensión de VS Code para cambiar las referencias para los distintos ambientes de trabajo”DESARROLLO, TEST,
-PRODUCCION”dentro de un JCL de mainframe, sin buscar y reemplazar a mano.
+ExtensiÃ³n de VS Code para cambiar las referencias para los distintos ambientes de trabajoÂ”DESARROLLO, TEST,
+PRODUCCIONÂ”dentro de un JCL de mainframe, sin buscar y reemplazar a mano.
 
-Abre un JCL, elige el ambiente destino y la extensión reescribe los `DSN=`, los
-bloques `JOBLIB`/`STEPLIB` y los parámetros como `CLASS=` entre otros, respetando las columnas
+Abre un JCL, elige el ambiente destino y la extensiÃ³n reescribe los `DSN=`, los
+bloques `JOBLIB`/`STEPLIB` y los parÃ¡metros como `CLASS=` entre otros, respetando las columnas
 y sin tocar nada que no corresponda.
 
 ## Evitar Errores involuntarios
@@ -41,7 +41,7 @@ abierto:
 $(server-environment) JCL: PRODUCCION
 ```
 
-Al hacer clic se elige el ambiente destino. Si el archivo mezcla señales de varios
+Al hacer clic se elige el ambiente destino. Si el archivo mezcla seÃ±ales de varios
 ambientes, la barra muestra `JCL: Mixto` y no deja cambiar nada hasta que se
 resuelva la ambiguedad a mano: es preferible detenerse a reescribir mal.
 
@@ -58,7 +58,7 @@ Comandos disponibles en la paleta (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 ### Si algo sale mal
 
 `Restaurar JCL original` funciona en dos capas: primero intenta deshacer la edicion
-y verifica que el texto haya quedado igual al original; si eso no alcanza”por
+y verifica que el texto haya quedado igual al original; si eso no alcanzaÂ”por
 ejemplo, porque el archivo ya se cerro recurre a un respaldo `.jcl.bak` que se
 escribe antes del primer cambio. Si el respaldo no se puede crear, la extension no
 toca el archivo.
@@ -136,7 +136,7 @@ las columnas correctas. Cada ambiente puede tener una cantidad distinta de libre
 ```
 
 Un bloque que no siga ese formato `DISP`,
-la pestaña **Bloques**, linea por linea, y se copia tal cual.
+la pestaÃ±a **Bloques**, linea por linea, y se copia tal cual.
 
 ### Parametros
 

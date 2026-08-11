@@ -1,7 +1,7 @@
 {
   "name": "jcl-enviroment",
   "displayName": "JCL Environment Switcher",
-  "description": "Cambia din·micamente las referencias de ambiente en JCL.",
+  "description": "Cambia din√°micamente las referencias de ambiente en JCL.",
   "version": "0.1.0",
   "publisher": "ccasti10",
   "license": "MIT",
@@ -74,7 +74,7 @@
       },
       {
         "command": "jclSwitcher.configJson",
-        "title": "JCL Switcher: Editar ConfiguraciÛn (JSON)"
+        "title": "JCL Switcher: Editar Configuraci√≥n (JSON)"
       }
     ],
     "configuration": {
@@ -83,7 +83,7 @@
         "jclSwitcher.configFilePath": {
           "type": "string",
           "default": "",
-          "description": "Ruta al archivo jcl-environments.json. Si est· vacÌo, buscar· en la raÌz del workspace."
+          "description": "Ruta al archivo jcl-environments.json. Si est√° vac√≠o, buscar√° en la ra√≠z del workspace."
         }
       }
     },
