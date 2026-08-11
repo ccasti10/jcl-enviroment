@@ -1,0 +1,34 @@
+.vscode/**
+.vscode-test/**
+
+# Source / development
+src/**
+examples/**
+ejemplos/**
+docs/**
+test/**
+tests/**
+out/test/**
+
+# Development configuration
+.claude/**
+.tokensave/**
+.github/**
+.git/**
+.gitignore
+CLAUDE.md
+.mocharc.json
+tsconfig.json
+
+# Dependencies / build artifacts
+node_modules/**
+**/node_modules/**
+**/*.map
+ejemplos/**
+
+# Project files
+*.code-workspace
+
+# OS
+.DS_Store
+**/.DS_Store

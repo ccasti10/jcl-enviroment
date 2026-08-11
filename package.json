@@ -1,0 +1,116 @@
+{
+  "name": "jcl-enviroment",
+  "displayName": "JCL Environment Switcher",
+  "description": "Cambia dinámicamente las referencias de ambiente en JCL.",
+  "version": "0.1.0",
+  "publisher": "ccasti10",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ccasti10/jcl-enviroment.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ccasti10/jcl-enviroment/issues"
+  },
+  "homepage": "https://github.com/ccasti10/jcl-enviroment",
+  "engines": {
+  "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "jcl",
+    "mainframe",
+    "z/os",
+    "ibm-z",
+    "cobol",
+    "db2",
+    "environment",
+    "jcl switcher",
+    "z/OS",
+    "batch"
+  ],
+  "activationEvents": [
+    "onLanguage:jcl",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "jcl",
+        "aliases": [
+          "JCL",
+          "jcl"
+        ],
+        "extensions": [
+          ".jcl",
+          ".jclinc",
+          ".proc",
+          ".prc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "jclSwitcher.switchEnvironment",
+        "title": "JCL Switcher: Cambiar a..."
+      },
+      {
+        "command": "jclSwitcher.markAs",
+        "title": "JCL Switcher: Marcar ambiente actual como..."
+      },
+      {
+        "command": "jclSwitcher.restoreOriginal",
+        "title": "JCL Switcher: Restaurar JCL original"
+      },
+      {
+        "command": "jclSwitcher.configVisual",
+        "title": "JCL Switcher: Configurar Ambientes (Visual)"
+      },
+      {
+        "command": "jclSwitcher.configJson",
+        "title": "JCL Switcher: Editar Configuración (JSON)"
+      }
+    ],
+    "configuration": {
+      "title": "JCL Environment Switcher",
+      "properties": {
+        "jclSwitcher.configFilePath": {
+          "type": "string",
+          "default": "",
+          "description": "Ruta al archivo jcl-environments.json. Si está vacío, buscará en la raíz del workspace."
+        }
+      }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          "jcl-environments.json",
+          "**/jcl-environments.json"
+        ],
+        "url": "./jcl-environments.schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "mocha \"src/test/**/*.test.ts\"",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.125.0",
+    "@vscode/vsce": "^3.9.2",
+    "mocha": "^10.8.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

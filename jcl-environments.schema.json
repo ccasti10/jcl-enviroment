@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JCL Environments Configuration",
+  "description": "Configuración de ambientes para JCL Environment Switcher.",
+  "type": "object",
+  "properties": {
+    "prefixMappings": {
+      "type": "array",
+      "description": "Mapeo de prefijos de datasets por ambiente.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sourcePrefix": {
+            "type": "string",
+            "description": "Prefijo lógico o prefijo origen."
+          },
+          "environmentTargets": {
+            "type": "object",
+            "description": "Prefijo real para cada ambiente.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sourcePrefix",
+          "environmentTargets"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "completeDatasetRules": {
+      "type": "array",
+      "description": "Reglas exactas de datasets completos.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre descriptivo de la regla."
+          },
+          "environments": {
+            "type": "object",
+            "description": "Dataset completo por ambiente.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "environments"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "blockTemplates": {
+      "type": "object",
+      "description": "Bloques JCL completos por ambiente.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "parameterRules": {
+      "type": "array",
+      "description": "Reglas para parámetros JCL que no son DSN.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "parameter": {
+            "type": "string",
+            "description": "Nombre del parámetro, por ejemplo CLASS."
+          },
+          "values": {
+            "type": "object",
+            "description": "Valor del parámetro por ambiente.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "parameter",
+          "values"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

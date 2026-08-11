@@ -1,0 +1,282 @@
+/* Panel de configuracion de JCL Switcher.
+   Todo el color sale de variables --vscode-* para respetar el tema del usuario
+   (claro / oscuro / alto contraste). No hardcodear colores ni fuentes aqui. */
+
+:root {
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --radius: 4px;
+    --control-h: 28px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+    margin: 0;
+    padding: var(--sp-4);
+    line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- toolbar */
+
+.toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    gap: var(--sp-2);
+    align-items: center;
+    padding: var(--sp-3) 0;
+    margin-bottom: var(--sp-2);
+    background: var(--vscode-editor-background);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+#status {
+    margin-left: auto;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+}
+
+#status.error {
+    color: var(--vscode-errorForeground);
+}
+
+/* ---------------------------------------------------------------- botones */
+
+button {
+    min-height: var(--control-h);
+    padding: 0 var(--sp-3);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    background: var(--vscode-button-secondaryBackground, transparent);
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+button:hover {
+    background: var(--vscode-button-secondaryHoverBackground, var(--vscode-toolbar-hoverBackground));
+}
+
+button.primary {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+button.primary:hover {
+    background: var(--vscode-button-hoverBackground);
+}
+
+/* Foco visible en TODO lo interactivo. Sin esto la navegacion por teclado
+   es practicamente invisible. */
+:is(button, input, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--vscode-focusBorder);
+    outline-offset: 1px;
+}
+
+/* Boton destructivo: texto de error sobre el fondo del panel garantiza
+   contraste en cualquier tema. Usar errorForeground como *fondo* no lo hace. */
+button.remove {
+    color: var(--vscode-errorForeground);
+    border-color: var(--vscode-panel-border);
+    background: transparent;
+}
+
+button.remove:hover {
+    border-color: var(--vscode-errorForeground);
+    background: var(--vscode-inputValidation-errorBackground, transparent);
+}
+
+button.remove[data-confirming="true"] {
+    color: var(--vscode-button-foreground);
+    background: var(--vscode-errorForeground);
+    border-color: var(--vscode-errorForeground);
+}
+
+/* ------------------------------------------------------------------- tabs */
+
+.tabs {
+    display: flex;
+    gap: var(--sp-1);
+    flex-wrap: wrap;
+    margin-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.tab {
+    border-radius: 0;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--vscode-panelTitle-inactiveForeground, var(--vscode-descriptionForeground));
+}
+
+.tab:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+    color: var(--vscode-foreground);
+}
+
+/* Estado activo por borde solido + color, no por opacidad: la opacidad
+   degrada el contraste del texto y es una senal demasiado debil. */
+.tab[aria-selected="true"] {
+    color: var(--vscode-panelTitle-activeForeground, var(--vscode-foreground));
+    border-bottom-color: var(--vscode-panelTitle-activeBorder, var(--vscode-focusBorder));
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content:focus {
+    outline: none;
+}
+
+.section-intro {
+    margin: 0 0 var(--sp-4);
+    max-width: 70ch;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* ---------------------------------------------------------------- buscador */
+
+/*
+ * Las tarjetas filtradas se esconden, no se sacan del DOM: el guardado las lee
+ * desde el HTML. Ver applyFilter() en configWebView.js.
+ */
+.hidden {
+    display: none;
+}
+
+.list-toolbar {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-3);
+}
+
+.list-toolbar .field {
+    flex: 1 1 220px;
+    max-width: 320px;
+    margin: 0;
+}
+
+.list-count {
+    padding-bottom: 6px;
+    white-space: nowrap;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* ---------------------------------------------------------------- tarjetas */
+
+.card {
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: var(--radius);
+    padding: var(--sp-3);
+    margin-bottom: var(--sp-3);
+    background: var(--vscode-editorWidget-background, transparent);
+}
+
+.card-header {
+    display: flex;
+    gap: var(--sp-2);
+    align-items: flex-end;
+    margin-bottom: var(--sp-3);
+}
+
+.card-header .field {
+    flex: 1;
+}
+
+.env-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--sp-3);
+}
+
+/* ----------------------------------------------------------------- campos */
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+}
+
+.field > label {
+    font-size: 0.9em;
+    color: var(--vscode-descriptionForeground);
+}
+
+input[type="text"],
+textarea {
+    width: 100%;
+    min-height: var(--control-h);
+    padding: var(--sp-1) var(--sp-2);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: var(--radius);
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    font-family: inherit;
+    font-size: inherit;
+}
+
+input[type="text"]::placeholder,
+textarea::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+}
+
+textarea {
+    min-height: 96px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    resize: vertical;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+}
+
+/* ----------------------------------------------------- estados vacios */
+
+.empty {
+    border: 1px dashed var(--vscode-panel-border);
+    border-radius: var(--radius);
+    padding: var(--sp-4);
+    margin-bottom: var(--sp-3);
+    color: var(--vscode-descriptionForeground);
+    max-width: 70ch;
+}
+
+.empty p {
+    margin: 0 0 var(--sp-2);
+}
+
+.empty p:last-child {
+    margin-bottom: 0;
+}
+
+.empty code {
+    font-family: var(--vscode-editor-font-family);
+    color: var(--vscode-textPreformat-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}
