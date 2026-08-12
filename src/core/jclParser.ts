@@ -4,6 +4,7 @@ const INLINE_DATA_START_REGEX = /^\/\/([A-Z0-9]{1,8})?\s+DD\s+(\*|DATA\b)/i;
 const INLINE_DATA_END_PREFIX = '/*';
 const COMMENT_PREFIX = '//*';
 const DD_STANDARD_REGEX = /^\/\/([A-Z0-9]{1,8})?\s+DD\s+/i;
+const EXEC_PGM_REGEX = /^\/\/\S*\s+EXEC\s+PGM\s*=\s*([A-Za-z0-9@#$]+)/i;
 
 export class JclParser {
     /**
@@ -21,11 +22,19 @@ export class JclParser {
     public parseLines(lines: string[]): ParsedLine[] {
         const parsedLines: ParsedLine[] = [];
         let isInInlineData = false;
+        let currentProgram: string | undefined;
 
         for (let i = 0; i < lines.length; i++) {
             const rawText = lines[i];
             let type: JclLineType;
             let isMutable = true;
+
+            if (!isInInlineData) {
+                const execMatch = EXEC_PGM_REGEX.exec(rawText);
+                if (execMatch) {
+                    currentProgram = execMatch[1].toUpperCase();
+                }
+            }
 
             // Si estamos dentro de un bloque DD *, mandan los datos en línea.
             if (isInInlineData) {
@@ -69,7 +78,8 @@ export class JclParser {
                 lineNumber: i,
                 rawText,
                 type,
-                isMutable
+                isMutable,
+                execProgram: currentProgram
             });
         }
 

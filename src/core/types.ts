@@ -14,4 +14,5 @@ export interface ParsedLine {
     rawText: string;
     type: JclLineType;
     isMutable: boolean;
+    execProgram?: string;
 }
