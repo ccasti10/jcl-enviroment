@@ -1,7 +1,10 @@
 
 # Paquete generado por vsce
 *.vsix
+.gitignore
 node_modules
 .claude
 .tokensave
+.vscode
 ejemplos/
+claude.md
