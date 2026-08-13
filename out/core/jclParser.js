@@ -6,6 +6,7 @@ const INLINE_DATA_START_REGEX = /^\/\/([A-Z0-9]{1,8})?\s+DD\s+(\*|DATA\b)/i;
 const INLINE_DATA_END_PREFIX = '/*';
 const COMMENT_PREFIX = '//*';
 const DD_STANDARD_REGEX = /^\/\/([A-Z0-9]{1,8})?\s+DD\s+/i;
+const EXEC_PGM_REGEX = /^\/\/\S*\s+EXEC\s+PGM\s*=\s*([A-Za-z0-9@#$]+)/i;
 class JclParser {
     /**
      * Parsea texto JCL completo.
@@ -21,10 +22,17 @@ class JclParser {
     parseLines(lines) {
         const parsedLines = [];
         let isInInlineData = false;
+        let currentProgram;
         for (let i = 0; i < lines.length; i++) {
             const rawText = lines[i];
             let type;
             let isMutable = true;
+            if (!isInInlineData) {
+                const execMatch = EXEC_PGM_REGEX.exec(rawText);
+                if (execMatch) {
+                    currentProgram = execMatch[1].toUpperCase();
+                }
+            }
             // Si estamos dentro de un bloque DD *, mandan los datos en línea.
             if (isInInlineData) {
                 // Fin de data en línea: /* en columna 1.
@@ -65,7 +73,8 @@ class JclParser {
                 lineNumber: i,
                 rawText,
                 type,
-                isMutable
+                isMutable,
+                execProgram: currentProgram
             });
         }
         return parsedLines;

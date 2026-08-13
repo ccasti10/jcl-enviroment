@@ -37,5 +37,24 @@ describe('JclParser', () => {
         assert_1.default.strictEqual(parsed[4].type, types_1.JclLineType.JclStatement);
         assert_1.default.strictEqual(parsed[4].isMutable, true);
     });
+    it('debe marcar execProgram con el PGM del step vigente', () => {
+        const parser = new jclParser_1.JclParser();
+        const parsed = parser.parseLines([
+            '//STEP01 EXEC PGM=IDCAMS',
+            '//SYSIN DD *',
+            '  DELETE PROD.OLD.FILE',
+            '/*',
+            '//STEP02 EXEC PGM=IEBGENER',
+            '//SYSIN DD *',
+            'ALGO'
+        ]);
+        assert_1.default.strictEqual(parsed[0].execProgram, 'IDCAMS');
+        assert_1.default.strictEqual(parsed[1].execProgram, 'IDCAMS');
+        assert_1.default.strictEqual(parsed[2].execProgram, 'IDCAMS');
+        assert_1.default.strictEqual(parsed[3].execProgram, 'IDCAMS');
+        assert_1.default.strictEqual(parsed[4].execProgram, 'IEBGENER');
+        assert_1.default.strictEqual(parsed[5].execProgram, 'IEBGENER');
+        assert_1.default.strictEqual(parsed[6].execProgram, 'IEBGENER');
+    });
 });
 //# sourceMappingURL=parser.test.js.map

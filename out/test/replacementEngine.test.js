@@ -94,5 +94,43 @@ describe('ReplacementEngine', () => {
         const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
         assert_1.default.ok(result.text.includes('CLASS=D'));
     });
+    it('debe reemplazar datasets bare en DELETE/ALTER dentro de SYSIN de un step IDCAMS', () => {
+        const engine = new replacementEngine_1.ReplacementEngine(config);
+        const jcl = [
+            '//STEP01  EXEC PGM=IDCAMS',
+            '//SYSIN    DD *',
+            '  DELETE PROD.BATCH.LOADLIB',
+            '  ALTER  PROD.SI.TOUCH NEWNAME(PROD.SI.TOUCH2)',
+            '/*',
+            '//DD1    DD  DSN=PROD.SI.TOUCH,DISP=SHR'
+        ].join('\n');
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+        assert_1.default.ok(result.text.includes('DELETE DESA.BATCH.LOADLIB'));
+        assert_1.default.ok(result.text.includes('ALTER  DESA.SI.TOUCH'));
+        assert_1.default.ok(result.text.includes('DSN=DESA.SI.TOUCH'));
+    });
+    it('debe reemplazar el dataset de NAME(...) en un DEFINE dentro de SYSIN IDCAMS', () => {
+        const engine = new replacementEngine_1.ReplacementEngine(config);
+        const jcl = [
+            '//STEP01  EXEC PGM=IDCAMS',
+            '//SYSIN    DD *',
+            '  DEFINE CLUSTER (NAME(PROD.SI.TOUCH) -',
+            '  VOLUMES(VOL001))',
+            '/*'
+        ].join('\n');
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+        assert_1.default.ok(result.text.includes('NAME(DESA.SI.TOUCH)'));
+    });
+    it('no debe modificar data dentro de DD * de un step que no es IDCAMS', () => {
+        const engine = new replacementEngine_1.ReplacementEngine(config);
+        const jcl = [
+            '//STEP01  EXEC PGM=IEBGENER',
+            '//SYSIN    DD *',
+            '  DELETE PROD.NO.TOUCH',
+            '/*'
+        ].join('\n');
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+        assert_1.default.ok(result.text.includes('DELETE PROD.NO.TOUCH'));
+    });
 });
 //# sourceMappingURL=replacementEngine.test.js.map

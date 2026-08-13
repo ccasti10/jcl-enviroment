@@ -5,6 +5,8 @@ const types_1 = require("./types");
 const jclParser_1 = require("./jclParser");
 const DSN_REGEX = /(?<![A-Za-z0-9_&])(DSN\s*=\s*)([A-Za-z0-9@#$\.\-]+)/gi;
 const ANONYMOUS_DD_REGEX = /^\/\/\s+DD\b/i;
+const IDCAMS_DELETE_ALTER_REGEX = /\b(DELETE|ALTER)(\s+)([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)/gi;
+const IDCAMS_NAME_REGEX = /\b(NAME|RELATE|PATHENTRY)(\s*\(\s*)([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)/gi;
 class ReplacementEngine {
     config;
     parser = new jclParser_1.JclParser();
@@ -125,7 +127,17 @@ class ReplacementEngine {
     // LINE LEVEL REPLACEMENTS
     // =====================================================================
     applyLineLevelReplacements(line, targetEnvironment, completeDatasetIndex, ctx) {
-        if (!line.isMutable || line.fromTemplate) {
+        if (line.fromTemplate) {
+            return line.rawText;
+        }
+        // Excepción acotada a la Regla 2: los datasets de control de IDCAMS
+        // (DELETE, ALTER, DEFINE ... NAME(...)) también deben migrar de ambiente,
+        // aunque vivan dentro de un SYSIN DD *. El resto de la data en línea
+        // sigue intocable.
+        if (line.type === types_1.JclLineType.InlineData && line.execProgram === 'IDCAMS') {
+            return this.replaceIdcamsDatasets(line.rawText, targetEnvironment, completeDatasetIndex, ctx);
+        }
+        if (!line.isMutable) {
             return line.rawText;
         }
         // Comentarios, blancos y data en línea no se tocan.
@@ -148,59 +160,87 @@ class ReplacementEngine {
     // =====================================================================
     replaceDatasets(line, targetEnvironment, completeDatasetIndex, ctx) {
         return line.replace(DSN_REGEX, (match, dsnKeyword, dataset) => {
-            if (!dataset || dataset.startsWith('&')) {
-                return match;
-            }
-            const normalizedDataset = this.normalize(dataset);
-            // ------------------------------------------------------------
-            // Prioridad 1: Complete Dataset Rules
-            // ------------------------------------------------------------
-            const completeMatch = completeDatasetIndex.get(normalizedDataset);
-            if (completeMatch) {
-                const targetValue = this.getRecordValueByEnv(completeMatch.rule.environments, targetEnvironment);
-                if (targetValue === undefined) {
-                    const ruleName = completeMatch.rule.name ?? normalizedDataset;
-                    ctx.warnings.add(`La regla de dataset completo "${ruleName}" no define valor para el ambiente "${targetEnvironment}".`);
-                    return match;
-                }
-                if (targetValue === dataset) {
-                    return match;
-                }
-                ctx.replacements += 1;
-                return dsnKeyword + targetValue;
-            }
-            // ------------------------------------------------------------
-            // Prioridad 2: Prefix Mappings
-            // ------------------------------------------------------------
-            const segments = dataset.split('.');
-            const prefix = segments[0];
-            const prefixGroup = this.findPrefixGroup(prefix);
-            if (!prefixGroup) {
-                // Prefijo desconocido.
-                if (dataset.includes('.') && /^[A-Za-z0-9@#$\-]+$/.test(prefix)) {
-                    ctx.unknownPrefixes.add(this.normalize(prefix));
-                }
-                return match;
-            }
-            const targetPrefix = this.getRecordValueByEnv(prefixGroup.environmentTargets, targetEnvironment);
-            if (targetPrefix === undefined) {
-                ctx.warnings.add(`El prefijo "${prefix}" no define valor para el ambiente "${targetEnvironment}".`);
-                return match;
-            }
-            let newDataset;
-            if (dataset.includes('.')) {
-                const prefixRegex = new RegExp(`^${this.escapeRegExp(prefix)}(?=\\.)`, 'i');
-                newDataset = dataset.replace(prefixRegex, targetPrefix);
-            }
-            else {
-                newDataset = targetPrefix;
-            }
-            if (newDataset === dataset) {
+            const newDataset = this.resolveDataset(dataset, targetEnvironment, completeDatasetIndex, ctx);
+            if (newDataset === undefined) {
                 return match;
             }
             ctx.replacements += 1;
             return dsnKeyword + newDataset;
         });
+    }
+    /**
+     * Sustituye datasets de control IDCAMS (DELETE, ALTER, DEFINE ... NAME(...))
+     * dentro de un bloque SYSIN DD * de un step PGM=IDCAMS. A diferencia de DSN=,
+     * estos nombres de dataset son bare (sin keyword), por eso usan sus propios regex.
+     */
+    replaceIdcamsDatasets(line, targetEnvironment, completeDatasetIndex, ctx) {
+        let text = line.replace(IDCAMS_DELETE_ALTER_REGEX, (match, verb, spacing, dataset) => {
+            const newDataset = this.resolveDataset(dataset, targetEnvironment, completeDatasetIndex, ctx);
+            if (newDataset === undefined) {
+                return match;
+            }
+            ctx.replacements += 1;
+            return verb + spacing + newDataset;
+        });
+        text = text.replace(IDCAMS_NAME_REGEX, (match, keyword, opening, dataset) => {
+            const newDataset = this.resolveDataset(dataset, targetEnvironment, completeDatasetIndex, ctx);
+            if (newDataset === undefined) {
+                return match;
+            }
+            ctx.replacements += 1;
+            return keyword + opening + newDataset;
+        });
+        return text;
+    }
+    /**
+     * Resuelve el valor destino de un dataset: Complete Dataset Rules (prioridad 1),
+     * luego Prefix Mappings (prioridad 2). undefined = sin cambio.
+     */
+    resolveDataset(dataset, targetEnvironment, completeDatasetIndex, ctx) {
+        if (!dataset || dataset.startsWith('&')) {
+            return undefined;
+        }
+        const normalizedDataset = this.normalize(dataset);
+        // ------------------------------------------------------------
+        // Prioridad 1: Complete Dataset Rules
+        // ------------------------------------------------------------
+        const completeMatch = completeDatasetIndex.get(normalizedDataset);
+        if (completeMatch) {
+            const targetValue = this.getRecordValueByEnv(completeMatch.rule.environments, targetEnvironment);
+            if (targetValue === undefined) {
+                const ruleName = completeMatch.rule.name ?? normalizedDataset;
+                ctx.warnings.add(`La regla de dataset completo "${ruleName}" no define valor para el ambiente "${targetEnvironment}".`);
+                return undefined;
+            }
+            return targetValue === dataset ? undefined : targetValue;
+        }
+        // ------------------------------------------------------------
+        // Prioridad 2: Prefix Mappings
+        // ------------------------------------------------------------
+        const segments = dataset.split('.');
+        const prefix = segments[0];
+        const prefixGroup = this.findPrefixGroup(prefix);
+        if (!prefixGroup) {
+            // Prefijo desconocido.
+            if (dataset.includes('.') && /^[A-Za-z0-9@#$\-]+$/.test(prefix)) {
+                ctx.unknownPrefixes.add(this.normalize(prefix));
+            }
+            return undefined;
+        }
+        const targetPrefix = this.getRecordValueByEnv(prefixGroup.environmentTargets, targetEnvironment);
+        if (targetPrefix === undefined) {
+            ctx.warnings.add(`El prefijo "${prefix}" no define valor para el ambiente "${targetEnvironment}".`);
+            return undefined;
+        }
+        let newDataset;
+        if (dataset.includes('.')) {
+            const prefixRegex = new RegExp(`^${this.escapeRegExp(prefix)}(?=\\.)`, 'i');
+            newDataset = dataset.replace(prefixRegex, targetPrefix);
+        }
+        else {
+            newDataset = targetPrefix;
+        }
+        return newDataset === dataset ? undefined : newDataset;
     }
     findPrefixGroup(prefix) {
         const normalizedPrefix = this.normalize(prefix);
