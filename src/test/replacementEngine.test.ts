@@ -189,6 +189,38 @@ describe('ReplacementEngine', () => {
         assert.ok(result.text.includes("LIB('DESA.BATCH.LOADLIB')"));
     });
 
+    it('debe reemplazar SYSTEM(...) y PLAN(...) además del LIB en un bloque SYSTSIN', () => {
+        const engine = new ReplacementEngine({
+            ...config,
+            parameterRules: [
+                {
+                    parameter: 'SYSTEM',
+                    values: { PRODUCCION: 'DB2P', DESARROLLO: 'DB2D' }
+                },
+                {
+                    parameter: 'PLAN',
+                    values: { PRODUCCION: 'PPISI', DESARROLLO: 'PDISI' }
+                }
+            ]
+        });
+
+        const jcl = [
+            '//STEP01  EXEC PGM=IKJEFT01',
+            '//SYSTSIN  DD *',
+            '  DSN SYSTEM(DB2P)',
+            '   RUN PROGRAM(CREB8617) -',
+            "       PLAN(PPISI) LIB('PROD.BATCH.LOADLIB')",
+            '   END',
+            '/*'
+        ].join('\n');
+
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+
+        assert.ok(result.text.includes('SYSTEM(DB2D)'));
+        assert.ok(result.text.includes('PLAN(PDISI)'));
+        assert.ok(result.text.includes("LIB('DESA.BATCH.LOADLIB')"));
+    });
+
     it('no debe tocar LIB(...) dentro de un SYSIN que no es SYSTSIN', () => {
         const engine = new ReplacementEngine(config);
 

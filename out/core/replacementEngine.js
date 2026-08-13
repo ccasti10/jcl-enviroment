@@ -206,7 +206,7 @@ class ReplacementEngine {
      * El dataset va entre comillas simples opcionales, que se preservan.
      */
     replaceDsnCommandDatasets(line, targetEnvironment, completeDatasetIndex, ctx) {
-        return line.replace(DSN_LIB_REGEX, (match, opening, openQuote, dataset, closeQuote, closing) => {
+        const text = line.replace(DSN_LIB_REGEX, (match, opening, openQuote, dataset, closeQuote, closing) => {
             const newDataset = this.resolveDataset(dataset, targetEnvironment, completeDatasetIndex, ctx);
             if (newDataset === undefined) {
                 return match;
@@ -214,6 +214,8 @@ class ReplacementEngine {
             ctx.replacements += 1;
             return opening + (openQuote ?? '') + newDataset + (closeQuote ?? '') + closing;
         });
+        // SYSTEM(DB2P), PLAN(PPISI) y demás no son datasets: salen de parameterRules.
+        return this.replaceParameters(text, targetEnvironment, ctx);
     }
     /**
      * Resuelve el valor destino de un dataset: Complete Dataset Rules (prioridad 1),
@@ -319,7 +321,9 @@ class ReplacementEngine {
             if (this.normalize(rule.parameter) === 'DSN') {
                 continue;
             }
-            const paramRegex = new RegExp(`(?<![A-Za-z0-9_&])(${this.escapeRegExp(rule.parameter)}\\s*=\\s*)([^,\\s)]+)`, 'gi');
+            // Acepta PARAM=valor y PARAM(valor): el procesador de comandos DSN
+            // usa la forma con paréntesis (SYSTEM(DB2P), PLAN(PPISI)).
+            const paramRegex = new RegExp(`(?<![A-Za-z0-9_&])(${this.escapeRegExp(rule.parameter)}\\s*(?:=|\\()\\s*)([^,\\s)]+)`, 'gi');
             result = result.replace(paramRegex, (match, paramKeyword, currentValue) => {
                 const knownValues = Object.values(rule.values);
                 const normalizedCurrentValue = this.normalize(currentValue);

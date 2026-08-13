@@ -337,7 +337,7 @@ export class ReplacementEngine {
         completeDatasetIndex: Map<string, CompleteDatasetMatch>,
         ctx: ReplacementContext
     ): string {
-        return line.replace(
+        const text = line.replace(
             DSN_LIB_REGEX,
             (match: string, opening: string, openQuote: string | undefined, dataset: string, closeQuote: string | undefined, closing: string) => {
                 const newDataset = this.resolveDataset(dataset, targetEnvironment, completeDatasetIndex, ctx);
@@ -350,6 +350,9 @@ export class ReplacementEngine {
                 return opening + (openQuote ?? '') + newDataset + (closeQuote ?? '') + closing;
             }
         );
+
+        // SYSTEM(DB2P), PLAN(PPISI) y demás no son datasets: salen de parameterRules.
+        return this.replaceParameters(text, targetEnvironment, ctx);
     }
 
     /**
@@ -508,8 +511,10 @@ export class ReplacementEngine {
                 continue;
             }
 
+            // Acepta PARAM=valor y PARAM(valor): el procesador de comandos DSN
+            // usa la forma con paréntesis (SYSTEM(DB2P), PLAN(PPISI)).
             const paramRegex = new RegExp(
-                `(?<![A-Za-z0-9_&])(${this.escapeRegExp(rule.parameter)}\\s*=\\s*)([^,\\s)]+)`,
+                `(?<![A-Za-z0-9_&])(${this.escapeRegExp(rule.parameter)}\\s*(?:=|\\()\\s*)([^,\\s)]+)`,
                 'gi'
             );
 
