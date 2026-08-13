@@ -221,6 +221,46 @@ describe('ReplacementEngine', () => {
         assert.ok(result.text.includes("LIB('DESA.BATCH.LOADLIB')"));
     });
 
+    it('debe reportar las reglas configuradas que no calzaron con nada', () => {
+        const engine = new ReplacementEngine(config);
+
+        const jcl = '//DD1    DD  DSN=PROD.SI.TOUCH,DISP=SHR';
+
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+
+        // El prefijo PROD sí calzó; el resto de las reglas no aparecen en el JCL.
+        assert.ok(!result.unusedRules.includes('prefijo "PROD"'));
+        assert.ok(result.unusedRules.includes('parámetro "CLASS"'));
+        assert.ok(result.unusedRules.includes('dataset completo "Datasets de NW"'));
+        assert.ok(result.unusedRules.includes('bloque "JOBLIB"'));
+    });
+
+    it('no debe reportar como sin uso una regla que calzó sin cambiar el valor', () => {
+        const engine = new ReplacementEngine(config);
+
+        // Ya está en PRODUCCION y se pide PRODUCCION: la regla calza, no cambia nada.
+        const jcl = '//JOB0001 JOB (ACCT),CLASS=A';
+
+        const result = engine.applyEnvironmentToText(jcl, 'PRODUCCION');
+
+        assert.strictEqual(result.replacements, 0);
+        assert.ok(!result.unusedRules.includes('parámetro "CLASS"'));
+    });
+
+    it('debe advertir cuando el parámetro aparece con un valor fuera de la regla', () => {
+        const engine = new ReplacementEngine(config);
+
+        const jcl = '//JOB0001 JOB (ACCT),CLASS=Z';
+
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+
+        assert.ok(result.text.includes('CLASS=Z'));
+        assert.ok(
+            result.warnings.some(w => w.includes('CLASS') && w.includes('"Z"')),
+            `warnings inesperadas: ${JSON.stringify(result.warnings)}`
+        );
+    });
+
     it('no debe tocar LIB(...) dentro de un SYSIN que no es SYSTSIN', () => {
         const engine = new ReplacementEngine(config);
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "JCL Environments Configuration",
-  "description": "Configuración de ambientes para JCL Environment Switcher.",
+  "description": "Configuracion de ambientes para JCL Environment Switcher.",
   "type": "object",
   "properties": {
     "prefixMappings": {
@@ -12,7 +12,7 @@
         "properties": {
           "sourcePrefix": {
             "type": "string",
-            "description": "Prefijo lógico o prefijo origen."
+            "description": "Prefijo logico o prefijo origen."
           },
           "environmentTargets": {
             "type": "object",
@@ -68,17 +68,17 @@
     },
     "parameterRules": {
       "type": "array",
-      "description": "Reglas para parámetros JCL que no son DSN.",
+      "description": "Reglas para parametros JCL que no son DSN.",
       "items": {
         "type": "object",
         "properties": {
           "parameter": {
             "type": "string",
-            "description": "Nombre del parámetro, por ejemplo CLASS."
+            "description": "Nombre del parametro, por ejemplo CLASS."
           },
           "values": {
             "type": "object",
-            "description": "Valor del parámetro por ambiente.",
+            "description": "Valor del parametro por ambiente.",
             "additionalProperties": {
               "type": "string"
             }

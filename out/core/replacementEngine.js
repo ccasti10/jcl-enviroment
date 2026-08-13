@@ -27,7 +27,8 @@ class ReplacementEngine {
                 text,
                 replacements: 0,
                 unknownPrefixes: [],
-                warnings: ['No se indicó un ambiente destino válido.']
+                warnings: ['No se indicó un ambiente destino válido.'],
+                unusedRules: []
             };
         }
         const parsed = this.parser.parseText(text);
@@ -35,7 +36,8 @@ class ReplacementEngine {
             targetEnvironment,
             replacements: 0,
             unknownPrefixes: new Set(),
-            warnings: new Set()
+            warnings: new Set(),
+            usedRules: new Set()
         };
         const completeDatasetIndex = this.buildCompleteDatasetIndex();
         // 1. Bloques completos.
@@ -46,7 +48,8 @@ class ReplacementEngine {
             text: finalLines.join(eol),
             replacements: ctx.replacements,
             unknownPrefixes: Array.from(ctx.unknownPrefixes).sort(),
-            warnings: Array.from(ctx.warnings).sort()
+            warnings: Array.from(ctx.warnings).sort(),
+            unusedRules: this.collectRuleLabels().filter(label => !ctx.usedRules.has(label))
         };
     }
     // =====================================================================
@@ -70,6 +73,7 @@ class ReplacementEngine {
                 i++;
                 continue;
             }
+            ctx.usedRules.add(this.blockLabel(blockName));
             const blockEnd = this.findBlockEnd(parsed, i);
             const templateByEnvironment = blockTemplates[blockName];
             const targetTemplate = this.getRecordValueByEnv(templateByEnvironment, targetEnvironment);
@@ -231,6 +235,8 @@ class ReplacementEngine {
         // ------------------------------------------------------------
         const completeMatch = completeDatasetIndex.get(normalizedDataset);
         if (completeMatch) {
+            // La regla calzó aunque el valor destino sea igual al actual.
+            ctx.usedRules.add(this.completeDatasetLabel(completeMatch.rule));
             const targetValue = this.getRecordValueByEnv(completeMatch.rule.environments, targetEnvironment);
             if (targetValue === undefined) {
                 const ruleName = completeMatch.rule.name ?? normalizedDataset;
@@ -252,6 +258,7 @@ class ReplacementEngine {
             }
             return undefined;
         }
+        ctx.usedRules.add(this.prefixLabel(prefixGroup));
         const targetPrefix = this.getRecordValueByEnv(prefixGroup.environmentTargets, targetEnvironment);
         if (targetPrefix === undefined) {
             ctx.warnings.add(`El prefijo "${prefix}" no define valor para el ambiente "${targetEnvironment}".`);
@@ -329,8 +336,13 @@ class ReplacementEngine {
                 const normalizedCurrentValue = this.normalize(currentValue);
                 const currentIsKnown = knownValues.some(value => this.normalize(value) === normalizedCurrentValue);
                 if (!currentIsKnown) {
+                    // La palabra clave está en el JCL pero su valor no figura
+                    // en la regla: casi siempre es la regla la que está mal.
+                    ctx.warnings.add(`El parámetro "${rule.parameter}" aparece con el valor "${currentValue}", que no está entre los valores de la regla.`);
                     return match;
                 }
+                // La regla reconoció el valor, aunque el destino sea el mismo.
+                ctx.usedRules.add(this.parameterLabel(rule));
                 const targetValue = this.getRecordValueByEnv(rule.values, targetEnvironment);
                 if (targetValue === undefined) {
                     ctx.warnings.add(`El parámetro "${rule.parameter}" no define valor para el ambiente "${targetEnvironment}".`);
@@ -348,6 +360,44 @@ class ReplacementEngine {
     // =====================================================================
     // HELPERS
     // =====================================================================
+    // ---------------------------------------------------------------------
+    // Etiquetas de reglas (para reportar las que no calzaron con nada)
+    // ---------------------------------------------------------------------
+    prefixLabel(mapping) {
+        return `prefijo "${mapping.sourcePrefix}"`;
+    }
+    completeDatasetLabel(rule) {
+        return `dataset completo "${rule.name ?? Object.values(rule.environments ?? {})[0] ?? '?'}"`;
+    }
+    parameterLabel(rule) {
+        return `parámetro "${rule.parameter}"`;
+    }
+    blockLabel(blockName) {
+        return `bloque "${blockName}"`;
+    }
+    /** Todas las reglas configuradas, en el mismo formato que usedRules. */
+    collectRuleLabels() {
+        const labels = [];
+        for (const mapping of this.config.prefixMappings ?? []) {
+            if (mapping?.sourcePrefix) {
+                labels.push(this.prefixLabel(mapping));
+            }
+        }
+        for (const rule of this.config.completeDatasetRules ?? []) {
+            if (rule?.environments) {
+                labels.push(this.completeDatasetLabel(rule));
+            }
+        }
+        for (const rule of this.config.parameterRules ?? []) {
+            if (rule?.parameter && this.normalize(rule.parameter) !== 'DSN') {
+                labels.push(this.parameterLabel(rule));
+            }
+        }
+        for (const blockName of Object.keys(this.config.blockTemplates ?? {})) {
+            labels.push(this.blockLabel(blockName));
+        }
+        return labels;
+    }
     getRecordValueByEnv(record, targetEnvironment) {
         if (!record) {
             return undefined;

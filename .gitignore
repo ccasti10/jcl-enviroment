@@ -1,3 +1,7 @@
 
 # Paquete generado por vsce
 *.vsix
+node_modules
+.claude
+.tokensave
+ejemplos/

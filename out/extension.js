@@ -354,9 +354,10 @@ async function applyEnvironment(editor, targetEnvironment) {
     const engine = new replacementEngine_1.ReplacementEngine(config);
     const result = engine.applyEnvironmentToText(originalText, targetEnvironment);
     logWarnings(targetEnvironment, result.warnings);
+    logUnusedRules(result.unusedRules);
     if (result.replacements === 0) {
         if (result.unknownPrefixes.length > 0) {
-            vscode.window.showWarningMessage(`JCL Switcher: no se realizaron reemplazos. Prefijos desconocidos: [${result.unknownPrefixes.join(', ')}].`);
+            await reportUnknownPrefixes(`JCL Switcher: no se realizaron reemplazos. Prefijos desconocidos: [${result.unknownPrefixes.join(', ')}].`, result.unknownPrefixes);
         }
         else {
             vscode.window.showInformationMessage(`JCL Switcher: no se realizaron reemplazos para cambiar a ${targetEnvironment}.`);
@@ -376,9 +377,7 @@ async function applyEnvironment(editor, targetEnvironment) {
         return;
     }
     vscode.window.showInformationMessage(`JCL actualizado a ${targetEnvironment}: ${result.replacements} reemplazos realizados.`);
-    if (result.unknownPrefixes.length > 0) {
-        vscode.window.showWarningMessage(`Cambio completado, pero se ignoraron los siguientes prefijos por no estar configurados: [${result.unknownPrefixes.join(', ')}].`);
-    }
+    await reportUnknownPrefixes(`Cambio completado, pero se ignoraron los siguientes prefijos por no estar configurados: [${result.unknownPrefixes.join(', ')}].`, result.unknownPrefixes);
     extensionEditedDocuments.add(documentKey);
     manualOverrides.set(documentKey, targetEnvironment);
     updateStatusBar();
@@ -399,6 +398,27 @@ function logWarnings(targetEnvironment, warnings) {
     outputChannel.appendLine(`[${new Date().toISOString()}] Advertencias al cambiar a ${targetEnvironment}:`);
     for (const warning of warnings) {
         outputChannel.appendLine(`- ${warning}`);
+    }
+}
+function logUnusedRules(unusedRules) {
+    if (unusedRules.length === 0) {
+        return;
+    }
+    // Al canal de salida y no como notificación: en un JCL cualquiera es normal
+    // que sobren reglas, así que avisarlo con popup sería puro ruido.
+    outputChannel.appendLine(`Reglas configuradas que no calzaron con nada en este JCL: ${unusedRules.join(', ')}.`);
+}
+/**
+ * Avisa de los prefijos sin configurar y ofrece abrir el panel para agregarlos.
+ */
+async function reportUnknownPrefixes(message, unknownPrefixes) {
+    if (unknownPrefixes.length === 0) {
+        return;
+    }
+    const agregar = 'Agregar prefijo';
+    const eleccion = await vscode.window.showWarningMessage(message, agregar);
+    if (eleccion === agregar) {
+        await vscode.commands.executeCommand('jclSwitcher.configVisual');
     }
 }
 function getDefaultConfig() {

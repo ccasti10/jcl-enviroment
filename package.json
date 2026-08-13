@@ -3,7 +3,7 @@
   "displayName": "JCL Environment Switcher",
   "description": "Cambia dinámicamente las referencias de ambiente en JCL.",
   "version": "0.1.0",
-  "publisher": "ccasti10",
+  "publisher": "ccastillo",
   "license": "MIT",
   "icon": "media/icon.png",
   "repository": {
