@@ -23,10 +23,14 @@ class JclParser {
         const parsedLines = [];
         let isInInlineData = false;
         let currentProgram;
+        let currentInlineDd;
         for (let i = 0; i < lines.length; i++) {
             const rawText = lines[i];
             let type;
             let isMutable = true;
+            const inlineStartMatch = isInInlineData
+                ? null
+                : INLINE_DATA_START_REGEX.exec(rawText);
             if (!isInInlineData) {
                 const execMatch = EXEC_PGM_REGEX.exec(rawText);
                 if (execMatch) {
@@ -52,8 +56,9 @@ class JclParser {
                 isMutable = false;
             }
             // Inicio de data en línea: DD * o DD DATA.
-            else if (INLINE_DATA_START_REGEX.test(rawText)) {
+            else if (inlineStartMatch) {
                 type = types_1.JclLineType.InlineDataStart;
+                currentInlineDd = inlineStartMatch[1]?.toUpperCase();
                 // La tarjeta DD en sí es una sentencia JCL, pero por seguridad
                 // el motor de reemplazo la tratará como protegida en esta fase.
                 isMutable = true;
@@ -74,7 +79,8 @@ class JclParser {
                 rawText,
                 type,
                 isMutable,
-                execProgram: currentProgram
+                execProgram: currentProgram,
+                inlineDataDd: currentInlineDd
             });
         }
         return parsedLines;

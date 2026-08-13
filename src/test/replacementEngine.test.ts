@@ -172,6 +172,38 @@ describe('ReplacementEngine', () => {
         assert.ok(result.text.includes("LIB('DESA.BATCH.LOADLIB')"));
     });
 
+    it('debe reemplazar LIB(...) en SYSTSIN aunque el step invoque un PROC sin PGM=', () => {
+        const engine = new ReplacementEngine(config);
+
+        const jcl = [
+            '//STEP01  EXEC DB2BATCH',
+            '//SYSTSIN  DD *',
+            '  DSN SYSTEM(DB2P)',
+            "       PLAN(PPISI) LIB('PROD.BATCH.LOADLIB')",
+            '   END',
+            '/*'
+        ].join('\n');
+
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+
+        assert.ok(result.text.includes("LIB('DESA.BATCH.LOADLIB')"));
+    });
+
+    it('no debe tocar LIB(...) dentro de un SYSIN que no es SYSTSIN', () => {
+        const engine = new ReplacementEngine(config);
+
+        const jcl = [
+            '//STEP01  EXEC PGM=IEBGENER',
+            '//SYSIN    DD *',
+            "  LIB('PROD.NO.TOUCH')",
+            '/*'
+        ].join('\n');
+
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+
+        assert.ok(result.text.includes("LIB('PROD.NO.TOUCH')"));
+    });
+
     it('no debe modificar data dentro de DD * de un step que no es IDCAMS', () => {
         const engine = new ReplacementEngine(config);
 

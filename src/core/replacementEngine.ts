@@ -35,9 +35,9 @@ const ANONYMOUS_DD_REGEX = /^\/\/\s+DD\b/i;
 const IDCAMS_DELETE_ALTER_REGEX = /\b(DELETE|ALTER)(\s+)([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)/gi;
 const IDCAMS_NAME_REGEX = /\b(NAME|RELATE|PATHENTRY)(\s*\(\s*)([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)/gi;
 
-// Familia de programas TSO que corren el procesador de comandos DSN (SYSTSIN):
-// `RUN PROGRAM(...) PLAN(...) LIB('dataset')`. El dataset va entre comillas.
-const DSN_COMMAND_PROGRAMS = new Set(['IKJEFT01', 'IKJEFT1A', 'IKJEFT1B']);
+// El procesador de comandos DSN (`RUN PROGRAM(...) PLAN(...) LIB('dataset')`)
+// siempre lee de SYSTSIN, corra bajo IKJEFT01 o bajo un PROC que lo invoque.
+// Por eso la marca es el nombre del DD y no el PGM= del step.
 const DSN_LIB_REGEX = /\b(LIB\s*\(\s*)(')?([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)(')?(\s*\))/gi;
 
 export class ReplacementEngine {
@@ -228,9 +228,9 @@ export class ReplacementEngine {
             return this.replaceIdcamsDatasets(line.rawText, targetEnvironment, completeDatasetIndex, ctx);
         }
 
-        // Misma excepción para SYSTSIN de un step del procesador de comandos DSN
-        // (IKJEFT01 y variantes): RUN PROGRAM(...) PLAN(...) LIB('dataset').
-        if (line.type === JclLineType.InlineData && line.execProgram !== undefined && DSN_COMMAND_PROGRAMS.has(line.execProgram)) {
+        // Misma excepción para el LIB('dataset') del procesador de comandos DSN,
+        // que siempre llega por SYSTSIN.
+        if (line.type === JclLineType.InlineData && line.inlineDataDd === 'SYSTSIN') {
             return this.replaceDsnCommandDatasets(line.rawText, targetEnvironment, completeDatasetIndex, ctx);
         }
 
@@ -328,9 +328,8 @@ export class ReplacementEngine {
     }
 
     /**
-     * Sustituye el dataset de LIB('dataset') dentro de un bloque SYSTSIN DD * de un
-     * step del procesador de comandos DSN (IKJEFT01 y variantes). El dataset va
-     * entre comillas simples opcionales, que se preservan en el reemplazo.
+     * Sustituye el dataset de LIB('dataset') dentro de un bloque SYSTSIN DD *.
+     * El dataset va entre comillas simples opcionales, que se preservan.
      */
     private replaceDsnCommandDatasets(
         line: string,

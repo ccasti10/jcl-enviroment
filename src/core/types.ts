@@ -15,4 +15,6 @@ export interface ParsedLine {
     type: JclLineType;
     isMutable: boolean;
     execProgram?: string;
+    /** Nombre del DD del bloque de data en línea vigente (SYSIN, SYSTSIN, ...). */
+    inlineDataDd?: string;
 }
