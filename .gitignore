@@ -8,3 +8,8 @@ node_modules
 .vscode
 ejemplos/
 claude.md
+
+
+# OS
+.DS_Store
+Thumbs.db
