@@ -35,6 +35,11 @@ const ANONYMOUS_DD_REGEX = /^\/\/\s+DD\b/i;
 const IDCAMS_DELETE_ALTER_REGEX = /\b(DELETE|ALTER)(\s+)([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)/gi;
 const IDCAMS_NAME_REGEX = /\b(NAME|RELATE|PATHENTRY)(\s*\(\s*)([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)/gi;
 
+// Familia de programas TSO que corren el procesador de comandos DSN (SYSTSIN):
+// `RUN PROGRAM(...) PLAN(...) LIB('dataset')`. El dataset va entre comillas.
+const DSN_COMMAND_PROGRAMS = new Set(['IKJEFT01', 'IKJEFT1A', 'IKJEFT1B']);
+const DSN_LIB_REGEX = /\b(LIB\s*\(\s*)(')?([A-Za-z0-9@#$][A-Za-z0-9@#$.\-]*)(')?(\s*\))/gi;
+
 export class ReplacementEngine {
     private readonly parser = new JclParser();
 
@@ -223,6 +228,12 @@ export class ReplacementEngine {
             return this.replaceIdcamsDatasets(line.rawText, targetEnvironment, completeDatasetIndex, ctx);
         }
 
+        // Misma excepción para SYSTSIN de un step del procesador de comandos DSN
+        // (IKJEFT01 y variantes): RUN PROGRAM(...) PLAN(...) LIB('dataset').
+        if (line.type === JclLineType.InlineData && line.execProgram !== undefined && DSN_COMMAND_PROGRAMS.has(line.execProgram)) {
+            return this.replaceDsnCommandDatasets(line.rawText, targetEnvironment, completeDatasetIndex, ctx);
+        }
+
         if (!line.isMutable) {
             return line.rawText;
         }
@@ -314,6 +325,32 @@ export class ReplacementEngine {
         );
 
         return text;
+    }
+
+    /**
+     * Sustituye el dataset de LIB('dataset') dentro de un bloque SYSTSIN DD * de un
+     * step del procesador de comandos DSN (IKJEFT01 y variantes). El dataset va
+     * entre comillas simples opcionales, que se preservan en el reemplazo.
+     */
+    private replaceDsnCommandDatasets(
+        line: string,
+        targetEnvironment: string,
+        completeDatasetIndex: Map<string, CompleteDatasetMatch>,
+        ctx: ReplacementContext
+    ): string {
+        return line.replace(
+            DSN_LIB_REGEX,
+            (match: string, opening: string, openQuote: string | undefined, dataset: string, closeQuote: string | undefined, closing: string) => {
+                const newDataset = this.resolveDataset(dataset, targetEnvironment, completeDatasetIndex, ctx);
+
+                if (newDataset === undefined) {
+                    return match;
+                }
+
+                ctx.replacements += 1;
+                return opening + (openQuote ?? '') + newDataset + (closeQuote ?? '') + closing;
+            }
+        );
     }
 
     /**

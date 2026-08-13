@@ -121,6 +121,20 @@ describe('ReplacementEngine', () => {
         const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
         assert_1.default.ok(result.text.includes('NAME(DESA.SI.TOUCH)'));
     });
+    it('debe reemplazar el dataset de LIB(...) dentro de SYSTSIN de un step IKJEFT01', () => {
+        const engine = new replacementEngine_1.ReplacementEngine(config);
+        const jcl = [
+            '//STEP01  EXEC PGM=IKJEFT01',
+            '//SYSTSIN  DD *',
+            '  DSN SYSTEM(DB2P)',
+            "   RUN PROGRAM(CREB8617) -",
+            "       PLAN(PPISI) LIB('PROD.BATCH.LOADLIB')",
+            '   END',
+            '/*'
+        ].join('\n');
+        const result = engine.applyEnvironmentToText(jcl, 'DESARROLLO');
+        assert_1.default.ok(result.text.includes("LIB('DESA.BATCH.LOADLIB')"));
+    });
     it('no debe modificar data dentro de DD * de un step que no es IDCAMS', () => {
         const engine = new replacementEngine_1.ReplacementEngine(config);
         const jcl = [
