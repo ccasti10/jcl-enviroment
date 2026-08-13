@@ -357,7 +357,8 @@ async function applyEnvironment(editor, targetEnvironment) {
     logUnusedRules(result.unusedRules);
     if (result.replacements === 0) {
         if (result.unknownPrefixes.length > 0) {
-            await reportUnknownPrefixes(`JCL Switcher: no se realizaron reemplazos. Prefijos desconocidos: [${result.unknownPrefixes.join(', ')}].`, result.unknownPrefixes);
+            // Sin await: la notificación tiene botón y no se cierra sola.
+            void reportUnknownPrefixes(`JCL Switcher: no se realizaron reemplazos. Prefijos desconocidos: [${result.unknownPrefixes.join(', ')}].`, result.unknownPrefixes);
         }
         else {
             vscode.window.showInformationMessage(`JCL Switcher: no se realizaron reemplazos para cambiar a ${targetEnvironment}.`);
@@ -377,10 +378,11 @@ async function applyEnvironment(editor, targetEnvironment) {
         return;
     }
     vscode.window.showInformationMessage(`JCL actualizado a ${targetEnvironment}: ${result.replacements} reemplazos realizados.`);
-    await reportUnknownPrefixes(`Cambio completado, pero se ignoraron los siguientes prefijos por no estar configurados: [${result.unknownPrefixes.join(', ')}].`, result.unknownPrefixes);
     extensionEditedDocuments.add(documentKey);
     manualOverrides.set(documentKey, targetEnvironment);
     updateStatusBar();
+    // Al final y sin await: la notificación tiene botón y espera al usuario.
+    void reportUnknownPrefixes(`Cambio completado, pero se ignoraron los siguientes prefijos por no estar configurados: [${result.unknownPrefixes.join(', ')}].`, result.unknownPrefixes);
 }
 // =========================================================================
 // HELPERS
